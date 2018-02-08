@@ -1,4 +1,5 @@
 version: 2
+workflow:
 jobs:
   build:
     working_directory: /tmp/build
