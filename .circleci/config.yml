@@ -1,50 +1,30 @@
-# Scala CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/sample-config/ for more details
-#
-version: 2
-jobs:
-  build:
-        dependencies:
-    pre:
-    - wget -q https://dl.bintray.com/sbt/debian/sbt-0.13.12.deb
-    - sudo dpkg -i sbt-0.13.12.deb
-    cache_directories:
-    - "~/.ivy2"
+machine:
+  timezone: UTC
+  java:
+    version: oraclejdk8
+
+# Collect build artifacts
+general:
+  artifacts:
+    - target/universal
+
+dependencies:
+  # Cache the resolution-cache and build streams to speed things up
+  cache_directories:
     - "~/.sbt"
-    
-    docker:
-      # specify the version you desire here
-      - image: circleci/openjdk:8-jdk
-      
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
+    - "target/resolution-cache"
+    - "target/streams"
+    - "project/target/resolution-cache"
+    - "project/target/streams"
+  # Compile all sources
+  override:
+    - sbt test:compile
 
-    working_directory: ~/repo
-
-    environment:
-      # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
-      TERM: dumb
-    
-    steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "build.sbt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
-      - run: cat /dev/null | sbt test:compile
-
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: v1-dependencies--{{ checksum "build.sbt" }}
-        
-      # run tests!
-      - run: cat /dev/null | sbt test:test
+test:
+  override:
+    - sbt test
+  # Copy test reports to Circle test reports dir then package app for deploy
+  post:
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - find . -type f -regex ".*/target/test-reports/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
+    - sbt dist
