@@ -26,10 +26,3 @@ before_cache:
   # Tricks to avoid unnecessary cache updates
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
-
-# Email specific recipient all the time
-notifications:
-  email:
-    recipients:
-      secure: "Some/BASE64/STUFF="
-    on_success: always # default: change
