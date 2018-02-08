@@ -2,6 +2,17 @@ version: 2
 jobs:
   build:
     working_directory: /tmp/build
+    dependencies:
+        cache_directories:
+    - "~/.iv2/cache"
+    - "~/.sbt"
+    - "~/.m2"
+    - "target/resolution-cache"
+    - "target/streams"
+    - "project/target/resolution-cache"
+    - "project/target/streams"
+    override:
+        - sbt compile
     docker:
       - image: alpine
     steps:
