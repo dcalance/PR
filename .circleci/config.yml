@@ -5,6 +5,14 @@
 version: 2
 jobs:
   build:
+        dependencies:
+    pre:
+    - wget -q https://dl.bintray.com/sbt/debian/sbt-0.13.12.deb
+    - sudo dpkg -i sbt-0.13.12.deb
+    cache_directories:
+    - "~/.ivy2"
+    - "~/.sbt"
+    
     docker:
       # specify the version you desire here
       - image: circleci/openjdk:8-jdk
@@ -40,4 +48,3 @@ jobs:
         
       # run tests!
       - run: cat /dev/null | sbt test:test
-      - compile:
