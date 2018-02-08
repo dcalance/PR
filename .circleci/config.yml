@@ -1,30 +1,17 @@
-machine:
-  timezone: UTC
-  java:
-    version: oraclejdk8
-
-# Collect build artifacts
-general:
-  artifacts:
-    - target/universal
-
-dependencies:
-  # Cache the resolution-cache and build streams to speed things up
-  cache_directories:
-    - "~/.sbt"
-    - "target/resolution-cache"
-    - "target/streams"
-    - "project/target/resolution-cache"
-    - "project/target/streams"
-  # Compile all sources
-  override:
-    - sbt test:compile
-
-test:
-  override:
-    - sbt test
-  # Copy test reports to Circle test reports dir then package app for deploy
-  post:
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
-    - find . -type f -regex ".*/target/test-reports/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
-    - sbt dist
+version: 2
+jobs:
+  build:
+    working_directory: /tmp/build
+    docker:
+      - image: alpine
+    steps:
+      - checkout
+      - setup_remote_docker
+      - deploy:
+          name: Publish to Docker Hub
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              apk --no-cache add docker bash
+              docker login -u ${DOCKER_LOGIN} -p ${DOCKER_PASSWORD}
+              bash ./build_multiple.sh
+            fi
