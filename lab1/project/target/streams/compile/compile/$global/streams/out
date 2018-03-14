@@ -1,4 +1,0 @@
-[error] C:\Users\User\IdeaProjects\PR\lab1\project\HelloWorld.scala:2:7: only traits and abstract classes can have declared but undefined members
-[error]   def main(args : Array[String])
-[error]       ^
-[error] one error found
