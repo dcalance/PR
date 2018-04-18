@@ -1,5 +1,6 @@
-import javafx.application.Application
-import javafx.geometry.Pos
+import java.util.concurrent.TimeUnit
+import javafx.application.{Application, Platform}
+import javafx.geometry.{Insets, Pos}
 import javafx.scene.control.{Button, Label, PasswordField, TextField}
 import javafx.stage.Stage
 import javafx.scene.Scene
@@ -9,12 +10,27 @@ import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javax.mail.Store
 
+import scala.language.postfixOps
+import akka.actor.{ActorSystem, PoisonPill, Props}
+import akka.pattern.ask
+import akka.util.Timeout
+import com.sun.javafx.scene.control.IntegerField
+
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.util.Success
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class ImapLoginWindow{
   var store : Store = _
   var isConnected = false
+  implicit val timeout = Timeout(5, TimeUnit.SECONDS)
 
   def display(): Unit = {
+
+    val system = ActorSystem("ImapLoginWindow")
+
     val stage = new Stage()
     stage.setResizable(false)
 
@@ -29,33 +45,48 @@ class ImapLoginWindow{
     errorText.setTextFill(Color.RED)
 
     val serverField = new TextField()
-//    serverField.setFocusTraversable(false)
     serverField.setPromptText("Server")
-    serverField.setMaxWidth(200)
+    serverField.setMaxWidth(250)
+
+    val portField = new IntegerField()
+    portField.setValue(993)
+    portField.setMaxWidth(60)
+    portField.setPromptText("Port")
+
+    val serverPortBox = new HBox(40)
+    serverPortBox.getChildren.addAll(serverField, portField)
+    serverPortBox.setAlignment(Pos.CENTER)
 
     val emailField = new TextField()
-//    emailField.setFocusTraversable(false)
     emailField.setPromptText("Email")
-    emailField.setMaxWidth(200)
+    emailField.setMaxWidth(250)
 
     val passwordField = new PasswordField()
-//    passwordField.setFocusTraversable(false)
     passwordField.setPromptText("Password")
-    passwordField.setMaxWidth(200)
+    passwordField.setMaxWidth(250)
 
     val hbox = new HBox(10)
     hbox.setAlignment(Pos.CENTER)
 
+
+
     val connectButton = new Button("Connect")
     connectButton.setOnAction(_ => {
-      val imap = new Imap()
-      val (resp, respStore) = imap.connect(serverField.getText, emailField.getText, passwordField.getText)
-      errorText.setText(resp)
-      if(resp == "success") {
-        store = respStore
-        isConnected = true
-        stage.close()
+      val imapActor = system.actorOf(Props(new ImapActor(serverField.getText, emailField.getText, passwordField.getText, portField.getValue)), name = "imapActor")
+      val future = imapActor ? "connect"
+      future.onComplete {
+        case Success(resp) => {
+          val (msg, respStore) = resp.asInstanceOf[(String, Store)]
+          if (msg == "success") {
+            store = respStore
+            isConnected = true
+            Platform.runLater(() => stage.close())
+          } else {
+            Platform.runLater(() => errorText.setText(msg))
+          }
+        }
       }
+      imapActor ! PoisonPill
     })
     val cancelButton = new Button("Cancel")
     cancelButton.setOnAction(_ =>{
@@ -63,7 +94,7 @@ class ImapLoginWindow{
     })
 
     hbox.getChildren.addAll(connectButton, cancelButton)
-    vbox.getChildren.addAll(lockedImage, errorText, serverField, emailField, passwordField, hbox)
+    vbox.getChildren.addAll(lockedImage, errorText, serverPortBox, emailField, passwordField, hbox)
 
     val scene: Scene = new Scene(vbox, 350, 400)
 

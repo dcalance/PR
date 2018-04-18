@@ -1,3 +1,4 @@
+import java.util
 import javafx.application.Application
 import javafx.event.ActionEvent
 import javafx.scene.Scene
@@ -10,9 +11,11 @@ import javafx.scene.image.{Image, ImageView}
 import javax.imageio.ImageIO
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
+import javax.mail.Store
 
 
 class UI extends Application {
+  private val storeList = new util.ArrayList[Store]()
 
   override def start(primaryStage: Stage) {
     primaryStage.setTitle("Sup!")
@@ -58,7 +61,7 @@ class UI extends Application {
       val loginWindow = new ImapLoginWindow()
       loginWindow.display()
       if (loginWindow.isConnected) {
-        print(loginWindow.store.getDefaultFolder.list().length)
+        storeList.add(loginWindow.store)
       }
     })
 
