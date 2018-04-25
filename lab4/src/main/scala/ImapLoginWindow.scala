@@ -1,5 +1,6 @@
 import java.util.concurrent.TimeUnit
 import javafx.application.{Application, Platform}
+import javafx.beans.value.ChangeListener
 import javafx.geometry.{Insets, Pos}
 import javafx.scene.control.{Button, Label, PasswordField, TextField}
 import javafx.stage.Stage
@@ -14,11 +15,14 @@ import scala.language.postfixOps
 import akka.actor.{ActorSystem, PoisonPill, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.sun.javafx.scene.control.IntegerField
+import javafx.scene.control.TextField
+import javax.swing.event.ChangeListener
+
+import com.sun.javafx.scene.control.skin.IntegerField
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Success
+import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -48,8 +52,16 @@ class ImapLoginWindow{
     serverField.setPromptText("Server")
     serverField.setMaxWidth(250)
 
-    val portField = new IntegerField()
-    portField.setValue(993)
+    val portField = new TextField() {
+      override def replaceText(start: Int, end: Int, text: String): Unit = {
+        if (text.matches("[0-9]*")) super.replaceText(start, end, text)
+      }
+
+      override def replaceSelection(text: String): Unit = {
+        if (text.matches("[0-9]*")) super.replaceSelection(text)
+      }
+    }
+    portField.setText("993")
     portField.setMaxWidth(60)
     portField.setPromptText("Port")
 
@@ -72,8 +84,9 @@ class ImapLoginWindow{
 
     val connectButton = new Button("Connect")
     connectButton.setOnAction(_ => {
-      val imapActor = system.actorOf(Props(new ImapActor(serverField.getText, emailField.getText, passwordField.getText, portField.getValue)), name = "imapActor")
+      val imapActor = system.actorOf(Props(new ImapActor(serverField.getText, emailField.getText, passwordField.getText, portField.getText.toInt)), name = "imapActor")
       val future = imapActor ? "connect"
+      vbox.setDisable(true)
       future.onComplete {
         case Success(resp) => {
           val (msg, respStore) = resp.asInstanceOf[(String, Store)]
@@ -83,10 +96,16 @@ class ImapLoginWindow{
             Platform.runLater(() => stage.close())
           } else {
             Platform.runLater(() => errorText.setText(msg))
+            vbox.setDisable(false)
           }
+          imapActor ! PoisonPill
+        }
+        case Failure(_) => {
+          vbox.setDisable(false)
+          imapActor ! PoisonPill
+          Platform.runLater(() => errorText.setText("Request timeout"))
         }
       }
-      imapActor ! PoisonPill
     })
     val cancelButton = new Button("Cancel")
     cancelButton.setOnAction(_ =>{
