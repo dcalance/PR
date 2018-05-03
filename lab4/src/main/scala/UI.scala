@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class UI extends Application {
-  private val storeList = new ArrayBuffer[Store]()
+  private val storeList = new ArrayBuffer[StoreStruct]()
 
   override def start(primaryStage: Stage) {
     primaryStage.setTitle("Sup!")
@@ -34,37 +34,52 @@ class UI extends Application {
 
   }
 
-  def updateFolders(leftPane : HBox, midPane : HBox, mailStore : Store): Unit = {
+  def updateFolders(leftPane : HBox, midPane : HBox, mailStruct : StoreStruct): Unit = {
     val foldersListView = new ListView[String]()
     val foldersObservable = FXCollections.observableArrayList[String]
-    for (name <- mailStore.getDefaultFolder.list()) {
+    for (name <- mailStruct.store.getDefaultFolder.list()) {
       foldersObservable.add(name.getName)
     }
     foldersListView.setItems(foldersObservable)
 
     foldersListView.getSelectionModel.selectedItemProperty.addListener(new ChangeListener[String]() {
       override def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String): Unit = {
-        updateMailsFromFolder(mailStore.getFolder(newValue), midPane)
+        mailStruct.currentFolder = mailStruct.store.getFolder(newValue)
+        val folder = mailStruct.store.getFolder(newValue)
+        if (!folder.isOpen) {
+          folder.open(Folder.READ_ONLY)
+        }
+        mailStruct.mailsNumber = folder.getMessageCount
+        mailStruct.currentPage = 1
+        updateMailsFromFolder(mailStruct.store.getFolder(newValue), midPane, mailStruct.currentPage)
 
       }
     })
 
     leftPane.getChildren.clear()
     leftPane.getChildren.add(foldersListView)
+
+    if(mailStruct.currentFolder == null) {
+      foldersListView.getSelectionModel.select(0)
+    } else {
+      updateMailsFromFolder(mailStruct.currentFolder, midPane, mailStruct.currentPage)
+    }
   }
 
-  def updateMailsFromFolder(folder : Folder, midPane : HBox): Unit = {
+  def updateMailsFromFolder(folder : Folder, midPane : HBox, page : Int): Unit = {
     implicit val timeout = Timeout(20, TimeUnit.SECONDS)
     val system = ActorSystem("MainUIActor")
 
     val mailsTitleObservable = FXCollections.observableArrayList[String]
     val mailsTitleListView = new ListView[String]()
+    mailsTitleListView.setStyle("-fx-font-family:consolas")
 
-    folder.open(Folder.READ_ONLY)
+    if(!folder.isOpen)
+      folder.open(Folder.READ_ONLY)
     val messages = folder.getMessages
 
     if (messages.nonEmpty) {
-      val getMessagesActor = system.actorOf(Props(new GetMailsActor(messages, messages.size - 51, messages.size - 1)), name = "imapActor")
+      val getMessagesActor = system.actorOf(Props(new GetMailsActor(messages, if (messages.size - (50 * page) > 0) messages.size - (50 * page) else 0, messages.size - 1 - (50 * (page - 1)))), name = "imapActor")
       val future = getMessagesActor ? "start"
 
       future.onComplete({
@@ -78,11 +93,14 @@ class UI extends Application {
     mailsTitleListView.getSelectionModel.selectedItemProperty.addListener(new ChangeListener[String]() {
       override def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String): Unit = {
         println(newValue)
+        val messageWindow = new DisplayMessage()
+        val mailNr = messages.size - (50 * page) + mailsTitleListView.getSelectionModel.getSelectedIndex
+        messageWindow.createWindow(messages(mailNr))
       }
     })
 
     mailsTitleListView.setItems(mailsTitleObservable)
-    mailsTitleListView.setMinWidth(650)
+    mailsTitleListView.setMinWidth(600)
     midPane.getChildren.clear()
     midPane.getChildren.add(mailsTitleListView)
   }
@@ -93,6 +111,25 @@ class UI extends Application {
     val topPane = new TabPane()
     val leftPane = new HBox
     val midPane = new HBox
+    val rightPane = new HBox
+
+    val buttonNext = new Button(">")
+    val buttonPrev = new Button("<")
+
+    buttonNext.setOnAction(_ => {
+      val selectedTab = topPane.getSelectionModel.getSelectedIndex
+      if (storeList(selectedTab).currentPage * 50 < storeList(selectedTab).mailsNumber) {
+        storeList(selectedTab).currentPage += 1
+        updateMailsFromFolder(storeList(selectedTab).currentFolder, midPane, storeList(selectedTab).currentPage)
+      }
+    })
+    buttonPrev.setOnAction(_ => {
+      val selectedTab = topPane.getSelectionModel.getSelectedIndex
+      if (storeList(selectedTab).currentPage > 1) {
+        storeList(selectedTab).currentPage -= 1
+        updateMailsFromFolder(storeList(selectedTab).currentFolder, midPane, storeList(selectedTab).currentPage)
+      }
+    })
 
     leftPane.setMaxWidth(150)
     borderPane.getCenter
@@ -108,6 +145,8 @@ class UI extends Application {
     borderPane.setCenter(midPane)
     borderPane.setTop(topPane)
     borderPane.setLeft(leftPane)
+    borderPane.setRight(rightPane)
+
 
     val vbox = new VBox()
     val menuBar = new MenuBar
@@ -118,12 +157,12 @@ class UI extends Application {
       val loginWindow = new ImapLoginWindow()
       loginWindow.display()
       if (loginWindow.isConnected) {
-        storeList.append(loginWindow.store)
-        print(storeList.size)
+        storeList.append(new StoreStruct(loginWindow.store, 1, null, 0))
         val tab = new Tab()
         tab.setText(s"${loginWindow.store.getURLName}")
         tab.setGraphic(new ImageView(new Image("/imap.png")))
         topPane.getTabs.add(tab)
+        rightPane.getChildren.addAll(buttonPrev, buttonNext)
       }
     })
 

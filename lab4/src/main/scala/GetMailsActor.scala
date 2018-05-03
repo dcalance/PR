@@ -22,7 +22,7 @@ class GetMailsActor(messages : Array[Message], startIndex : Int, endIndex : Int)
               getFrom
             }
           }
-          val spaces = " " * (60 - fromString.length)
+          val spaces = " " * (45 - fromString.length)
           result.add(s"$fromString$spaces${messages(index).getSubject}")
         }
       sender() ! result

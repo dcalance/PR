@@ -16,12 +16,6 @@ import akka.actor.{ActorSystem, PoisonPill, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import javafx.scene.control.TextField
-import javax.swing.event.ChangeListener
-
-import com.sun.javafx.scene.control.skin.IntegerField
-
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
