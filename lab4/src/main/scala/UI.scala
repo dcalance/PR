@@ -94,7 +94,9 @@ class UI extends Application {
       override def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String): Unit = {
         println(newValue)
         val messageWindow = new DisplayMessage()
-        val mailNr = messages.size - (50 * page) + mailsTitleListView.getSelectionModel.getSelectedIndex
+        val selectedIndex = mailsTitleListView.getSelectionModel.getSelectedIndex
+        val mailNr = messages.size - 1 - (50 * page) + (50 - selectedIndex)
+        println(s"Mail number: $mailNr")
         messageWindow.createWindow(messages(mailNr))
       }
     })
