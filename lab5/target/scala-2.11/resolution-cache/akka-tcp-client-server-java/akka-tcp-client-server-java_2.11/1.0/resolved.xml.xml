@@ -4,7 +4,7 @@
 		module="akka-tcp-client-server-java_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20180503065708"
+		publication="20180503081811"
 	>
 		<description>
 		akka-tcp-client-server-java

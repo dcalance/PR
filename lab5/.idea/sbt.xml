@@ -12,10 +12,10 @@
         </option>
         <option name="sbtVersion" value="1.1.4" />
         <option name="useAutoImport" value="true" />
-        <option name="useOurOwnAutoImport" value="true" />
       </SbtProjectSettings>
       <SbtProjectSettings>
         <option name="externalProjectPath" value="C:\Users\User\IdeaProjects\PR\lab5" />
+        <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
     </option>
   </component>

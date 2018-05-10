@@ -1,17 +1,11 @@
 name := "lab5"
 
-version := "0.1"
+version := "1.0"
 
 scalaVersion := "2.12.6"
 
-name := """akka-tcp-client-server-java"""
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-version := "1.0"
+// https://mvnrepository.com/artifact/com.typesafe.akka/akka-actor
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.16"
 
-scalaVersion := "2.11.5"
-
-libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.3.9",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.9" % "test",
-  "junit" % "junit" % "4.11" % "test",
-  "com.novocode" % "junit-interface" % "0.10" % "test")
