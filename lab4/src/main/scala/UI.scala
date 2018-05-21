@@ -170,6 +170,10 @@ class UI extends Application {
 
     val pop3Item = new MenuItem("Pop3", new ImageView(new Image("/pop3.png")))
     val stmpItem = new MenuItem("Stmp", new ImageView(new Image("/stmp.png")))
+    stmpItem.setOnAction(_ => {
+      val sendMessageWindow = new SendMessageWindow
+      sendMessageWindow.createWindow()
+    })
 
     menuNew.getItems.addAll(imapItem, pop3Item, stmpItem)
     menuBar.getMenus.add(menuNew)

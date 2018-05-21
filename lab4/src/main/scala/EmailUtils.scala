@@ -27,7 +27,7 @@ object EmailUtils {
       msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false).toArray[Address])
       System.out.println("Message is ready")
       Transport.send(msg)
-      System.out.println("EMail Sent Successfully!!")
+      System.out.println("Email Sent Successfully!!")
     } catch {
       case e: Exception =>
         e.printStackTrace()
